@@ -1,0 +1,95 @@
+-- Autores:
+-- Luis Alberto Carranza González A01657296
+-- Diana Hayde Chávez García A01653000
+-- Karen Kimberly Chavarría Rosario A01652446
+-- Situación Problema: Sistema para llenado autómatico de botes con pastillas
+
+--Librerías
+library IEEE;
+use IEEE.STD_LOGIC_1164.all;
+
+-- Declaración de la entidad
+entity SituacionProblema is
+    port (Clk, Reset, S1, S2, S3, S4, S5, S6, S7, S8, S9: in STD_LOGIC; -- Reloj, reset y 4 switches 
+          LED1, LED2, LED3, LED4, LED5, LED6, LED7, LED8, LED9, LED0: out STD_LOGIC);			 -- 3 LEDs (Los demas son para mantenerlos apagados en FPGA)
+end SituacionProblema;
+
+-- Declaración de la arquitectura
+architecture Sistema of SituacionProblema is
+
+-- 4 estados: Idle, Rotar, Llenar y Sellar
+type State is (Idle, Rotar, Llenar, Sellar);
+signal CurrentState, NextState: State;
+
+-- Empezar proceso 
+begin
+	Registers: process (Clk, Reset)
+	begin
+        if Reset = '1' then				-- Reset asincrónico
+			CurrentState <= Idle;
+        elsif Rising_edge(Clk) then		-- Sincronización de estados
+			CurrentState <= NextState;  -- Asignación de estado siguiente en transición positiva de reloj
+        end if;
+end process Registers;
+
+	Combinational: process (CurrentState, S1, S2, S3, S4) -- Lógica combinacional de la FSM
+	begin
+		NextState <= CurrentState;
+		LED1 <= '0';
+		LED2 <= '0';
+		LED3 <= '0';
+		case CurrentState is
+		
+		-- Estado Idle
+		when Idle =>						
+        	LED1 <= '0';
+			LED2 <= '0';
+			LED3 <= '0';
+			if S1 = '1' then
+				NextState <= Rotar;		-- si S1 = 1, siguiente estado = Rotar
+            else
+            	NextState <= Idle;	-- si S1 = 0, siguiente estado = idle
+			end if;
+			
+		-- Estado Rotar	
+		when Rotar =>					
+        	LED1 <= '1';
+			LED2 <= '0';
+			LED3 <= '0';
+			if S2 = '1' then
+				NextState <= Llenar;		-- si S2 = 1, siguiente estado = Llenar
+            else
+            	NextState <= Rotar;	-- si S2 = 0, siguiente estado = Rotar
+			end if;
+			
+		-- Estado Llenar	
+		when Llenar =>
+        	LED1 <= '0';
+			LED2 <= '1';
+			LED3 <= '0';
+			if S3 = '1' then
+				NextState <= Sellar;		-- si S3 = 1, siguiente estado = Sellar
+            else
+            	NextState <= Llenar;		-- si S3 = 0, siguiente estado = Llenar
+			end if;
+			
+		-- Estado Sellar
+		when Sellar =>
+        	LED1 <= '0';
+			LED2 <= '0';
+			LED3 <= '1';
+			if S4 = '1' then
+				NextState <= Idle;		-- si S4 = 1, siguiente estado = Idle
+            else	
+            	NextState <= Sellar;	-- si S4 = 0, siguiente estado = Sellar
+			end if;
+			
+		-- Otros casos	
+		when others =>					
+			LED1 <= '0';
+			LED2 <= '0';
+			LED3 <= '0';
+			NextState <= Idle;
+		end case;
+	end process Combinational;
+end architecture Sistema;
